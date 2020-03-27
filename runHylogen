@@ -1,0 +1,38 @@
+#!/bin/bash
+
+TMPHYLO=${TMPHYLO:-"/tmp/ok.hs"}
+FRAGFILE=${FILE:-"/tmp/$(date +%F).frag"}
+OGFILE=$1
+
+COMMANDS="//what glslViewer takes;"
+COMMANDS="$COMMANDS \nuniform float u_time;"
+COMMANDS="$COMMANDS \nuniform vec2 u_resolution;"
+COMMANDS="$COMMANDS \nuniform vec2 u_mouse;"
+COMMANDS="$COMMANDS \nuniform vec2 v_texcoord; "
+COMMANDS="$COMMANDS \nvarying vec4 v_position; "
+COMMANDS="$COMMANDS \n//what hylogen outputs;"
+COMMANDS="$COMMANDS \nvec2 mouse = u_mouse/u_resolution;"
+COMMANDS="$COMMANDS \nfloat time = u_time;"
+COMMANDS="$COMMANDS \nvec2 resolution = u_resolution;"
+COMMANDS="$COMMANDS \nvec2 uvN = (v_position.xy)*0.5 + 0.5;"
+
+
+function recompile {
+    echo -e "$COMMANDS" > $FRAGFILE
+
+    cat "$OGFILE" > $TMPHYLO
+
+    echo 'main = print output' >> $TMPHYLO
+
+    runhaskell $TMPHYLO >> $FRAGFILE
+}
+
+recompile
+
+glslViewer $FRAGFILE & while sleep 0.5; do
+    if [ "$1" -nt "$TMPHYLO" ]; then
+    	echo "saved"
+	sleep 0.25
+        recompile
+    fi
+done
